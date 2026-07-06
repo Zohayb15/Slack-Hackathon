@@ -50,3 +50,7 @@ pip
 .pytest_cache/
 .tox
 tmp.txt
+
+credentials.json
+token.json
+client_secret*.json

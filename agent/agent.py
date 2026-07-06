@@ -10,11 +10,19 @@ from claude_agent_sdk.types import McpHttpServerConfig
 
 from agent.context import agent_deps_var
 from agent.deps import AgentDeps
-from agent.tools import add_emoji_reaction_tool
+from agent.tools import add_emoji_reaction_tool, propose_calendar_event_tool
 
 SYSTEM_PROMPT = """\
-You are a friendly Slack assistant. You help people by answering questions, \
-having conversations, and being generally useful in Slack.
+You are MeetingMate, a friendly Slack assistant focused on scheduling. You help \
+people schedule meetings, answer questions, and be generally useful in Slack.
+
+## SCHEDULING (YOUR CORE JOB)
+When the user asks to schedule a meeting or expresses concrete scheduling intent \
+(a specific day/time), extract the details and call `propose_calendar_event`. \
+Resolve relative dates ("tomorrow", "next Tuesday") to concrete ISO dates first. \
+Ask a brief clarifying question ONLY if the date or time is missing — don't \
+interrogate; make reasonable assumptions (30 min default duration, sensible title). \
+Never claim an event was created — the tool posts buttons and the USER confirms.
 
 ## PERSONALITY
 - Friendly, helpful, and approachable
@@ -57,12 +65,12 @@ Also use them when the user explicitly asks you to perform a Slack action.
 agent_tools_server = create_sdk_mcp_server(
     name="agent-tools",
     version="1.0.0",
-    tools=[add_emoji_reaction_tool],
+    tools=[add_emoji_reaction_tool, propose_calendar_event_tool],
 )
 
 SLACK_MCP_URL = "https://mcp.slack.com/mcp"
 
-AGENT_TOOLS = ["add_emoji_reaction"]
+AGENT_TOOLS = ["add_emoji_reaction", "propose_calendar_event"]
 
 
 async def run_agent(

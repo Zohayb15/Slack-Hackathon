@@ -7,8 +7,13 @@ from slack_bolt.context.set_status.async_set_status import AsyncSetStatus
 from slack_sdk.web.async_client import AsyncWebClient
 
 from agent import AgentDeps, run_agent
+from services.extraction import extract_event_details
 from thread_context import session_store
+from listeners.views.event_confirm_builder import build_event_confirm_blocks
 from listeners.views.feedback_builder import build_feedback_blocks
+
+# Minimum extraction confidence before we post a confirmation prompt.
+SCHEDULING_CONFIDENCE_THRESHOLD = 0.6
 
 
 async def handle_message(
@@ -38,7 +43,9 @@ async def handle_message(
         if session is None:
             return
     else:
-        # Top-level channel messages are handled by app_mentioned
+        # Top-level channel messages: passively scan for scheduling intent.
+        # (@mentions are handled separately by app_mentioned.)
+        await detect_and_propose_event(client, context, event, logger)
         return
 
     try:
@@ -91,3 +98,41 @@ async def handle_message(
             text=f":warning: Something went wrong! ({e})",
             thread_ts=event.get("thread_ts") or event.get("ts"),
         )
+
+
+async def detect_and_propose_event(
+    client: AsyncWebClient,
+    context: AsyncBoltContext,
+    event: dict,
+    logger: Logger,
+):
+    """Scan a top-level channel message for scheduling intent.
+
+    If a concrete plan is detected with enough confidence, post a
+    confirmation prompt (with Add/Ignore buttons) in the message's thread.
+    Silently does nothing otherwise, so normal chatter is unaffected.
+    """
+    text = event.get("text", "")
+    if not text or len(text) < 8:
+        return
+
+    try:
+        details = await extract_event_details(text)
+    except Exception as e:
+        logger.warning(f"Scheduling extraction failed: {e}")
+        return
+
+    if not details.get("is_scheduling_intent"):
+        return
+    if details.get("confidence", 0) < SCHEDULING_CONFIDENCE_THRESHOLD:
+        return
+    if not details.get("date") or not details.get("start_time"):
+        # Not concrete enough to schedule; skip rather than nag.
+        return
+
+    await client.chat_postMessage(
+        channel=context.channel_id,
+        thread_ts=event["ts"],
+        text="Looks like you're scheduling something — confirm to add it to your calendar.",
+        blocks=build_event_confirm_blocks(details),
+    )
