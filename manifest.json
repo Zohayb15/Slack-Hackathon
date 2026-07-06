@@ -54,6 +54,7 @@
         "app_mentions:read",
         "channels:history",
         "chat:write",
+        "commands",
         "groups:history",
         "im:history",
         "im:read",
