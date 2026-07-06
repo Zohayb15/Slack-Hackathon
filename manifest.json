@@ -15,7 +15,15 @@
     "bot_user": {
       "display_name": "MeetingMate",
       "always_online": true
-    }
+    },
+    "shortcuts": [
+      {
+        "name": "Add to calendar",
+        "type": "message",
+        "callback_id": "meetingmate_create_event",
+        "description": "Turn this message into a Google Calendar event"
+      }
+    ]
   },
   "oauth_config": {
     "redirect_urls": [

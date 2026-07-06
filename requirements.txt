@@ -4,6 +4,11 @@ slack-cli-hooks==0.3.0
 claude-agent-sdk==0.2.110
 aiohttp==3.14.1
 python-dotenv==1.2.2
+anthropic>=0.40.0
+google-api-python-client>=2.150.0
+google-auth>=2.35.0
+google-auth-oauthlib>=1.2.1
+tzdata>=2024.1  # required on Windows for zoneinfo (no-op on macOS/Linux)
 
 pytest==9.1.1
 pytest-asyncio==1.4.0
